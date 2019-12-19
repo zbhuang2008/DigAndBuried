@@ -10,7 +10,7 @@ ShuffleManager接口代码这里就不贴了，详情参见上一篇文章。
 
 另外在Spark中，通过配置信息可以来选择具体ShuffleManager的实现版本：HashShuffleManager或SortShuffleManager。下面我们分别针对两种ShuffleManager进行分析；
 
-##HashShuffleManager
+## HashShuffleManager
 HashShuffleManager是Spark最早版本的ShuffleManager，该ShuffleManager的严重缺点是会产生太多小文件，特别是reduce个数很多时候，存在很大的性能瓶颈。
 
 这里就直接给出小文件个数，后面会分析原因：ShuffleMapTask个数×reduce个数。这个数字很大的，假设512M的HDFS的分片大小，1T数据对应2048个map，如果reduce再大，
@@ -86,7 +86,7 @@ blockManager.diskBlockManager来实现的，详细可以参见《 [Spark-Block�
 
 从上面我们看到，不支持consolidateFiles的FileShuffleBlockManager还是很简单。下面我们分析支持consolidateFiles的FileShuffleBlockManager的实现
 
-###支持consolidateFiles的FileShuffleBlockManager
+### 支持consolidateFiles的FileShuffleBlockManager
 从上面forMapTask我们看到，针对每个Map都会创建一个ShuffleWriterGroup对象，其中封装了一组文件的writer，这个时候我们想，多个mapTask是否可以向这个
 ShuffleWriterGroup对象进行写？是的，可以，但是有一个前提是前一个map必须写完了，即close了该ShuffleWriterGroup所有的writer，那么下一个map就可以直接使用
 这组ShuffleWriterGroup对象所对应Files进行写；然后通过offset和length来从相同的文件中读取属于自己map的这部分。
@@ -233,7 +233,7 @@ getBlockData接口就需要去遍历所有的FileGroup, 即allFileGroups,判读�
 
 OK,我想我们应该理解了支持consolidateFiles的FileShuffleBlockManager的实现了;
 
-###HashShuffleWriter的实现;
+### HashShuffleWriter的实现;
 如果对FileShuffleBlockManager的理解比较清楚,HashShuffleWriter的理解就比较简单.
 
     private[spark] class HashShuffleWriter[K, V](
@@ -291,11 +291,11 @@ dep.aggregator.get.combineValuesByKey就为mapSideCombine的逻辑;
 所以整体来说HashShuffleWriter的实现还是很简单的; 通过这里的分析,大家应该对《[Spark基础以及Shuffle实现分析](./spark/shuffle-study.md)》中ShuffleMapStage应该有更
 深入的认识了;
 
-###HashShuffleReader的实现;
+### HashShuffleReader的实现;
 这里我不打算继续讲HashShuffleReader,为什么?如果大家打开SortShuffleManager,我们就会发现, 它也是使用HashShuffleReader. 这么说就是HashShuffleReader
 和具体的ShuffleManager无关,在分析完SortShuffleManager我们再统一进行分析;
 
-##SortShuffleManager
+## SortShuffleManager
 在HashShuffleManager中,不管是否支持consolidateFiles, 同一个map的多个reduce之间都对应了不同的文件,至于对应哪个文件,是由分区函数进行Hash来确定的;
 这是为什么它要叫做HashShuffleManager.
 
@@ -431,7 +431,7 @@ reduce数据输出到getDataFile(dep.shuffleId, mapId)文件中, 并返回每个
 
 现在还ShuffleManager里面还是最后一个大问题就是ShuffleRead,下面我们继续分析;
 
-##ShuffleReader
+## ShuffleReader
 在《[Spark基础以及Shuffle实现分析](./spark/shuffle-study.md)》中,我对ShuffledRDD的实现也是简单进行解释了一下,这里通过对ShuffleReader的实现的分析,对Shuffle
 的Reduce步骤进行详细分析;
 
@@ -595,12 +595,9 @@ splitLocalRemoteBlocks有两个过程, 第一判读当前MapStatus是不是Local
         )
       }
 
-我们看到远程获取Block其实是基于blockTransferService来实现的,其实这个内容是BlockManager的BlockTransferService,这里我就不具体去分析,下一步我会写一个关于BlockTransferService
-的实现,其实这块在0.91就遇到一个一个Bug,就是fetch永远等待导致job假死;后面再具体分析
+我们看到远程获取Block其实是基于blockTransferService来实现的,其实这个内容是BlockManager的BlockTransferService,这里我就不具体去分析,下一步我会写一个关于BlockTransferService的实现,其实这块在0.91就遇到一个一个Bug,就是fetch永远等待导致job假死;后面再具体分析
 
-到目前我们应该了解了ShuffleReader的功能, 级别上两种ShuffleManager的实现,我们就分析完了, 从上面分析我们可以看到SortShuffleManager创建小文件的数目应该是
-最小的,而且Map输出是有序的, 在reduce过程中如果要进行有序合并, 代价也是最小的. 也因此SortShuffleManager现在是Spark1.1版本以后的默认配置项;
+到目前我们应该了解了ShuffleReader的功能, 级别上两种ShuffleManager的实现,我们就分析完了, 从上面分析我们可以看到SortShuffleManager创建小文件的数目应该是最小的,而且Map输出是有序的, 在reduce过程中如果要进行有序合并, 代价也是最小的. 也因此SortShuffleManager现在是Spark1.1版本以后的默认配置项;
 
-另外我们经常在各种交流说到,做了什么Shuffle优化, 从上面我们看到, Shuffle针对特定的应用有很大的优化的空间,比如基于内存的Shuffle等;懂了ShuffleManager,以后听
-那些交流以后, 也就不会觉得人家多么高大不可攀了,嘿嘿,因为具体的优化接口Spark都是提供的,只是针对特定应用做了自己的实现而已;
+另外我们经常在各种交流说到,做了什么Shuffle优化, 从上面我们看到, Shuffle针对特定的应用有很大的优化的空间,比如基于内存的Shuffle等;懂了ShuffleManager,以后听那些交流以后, 也就不会觉得人家多么高大不可攀了,嘿嘿,因为具体的优化接口Spark都是提供的,只是针对特定应用做了自己的实现而已;
 
