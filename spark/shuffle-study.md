@@ -559,10 +559,10 @@ MapOut,
 
 上面两句话基本上表述清楚了Spark的Shuffle的过程,下面我们会针对ShuffleMap和ShuffledRDD的实现分别进行阐述
 
-###Shuffle Map过程
+### Shuffle Map过程
 对于ShuffleMap的过程的认识,首先需要解释其中一个组件的功能:MapOutputTracker;
 
-####MapOutputTracker
+#### MapOutputTracker
 写这部分的代码的人肯定写过Hadoop的代码,Tracker的命名方式在Hadoop很常见,但是在Spark中就好像仅此一处;Hadoop中Track对我的影响就是提供一个对象的访问入口,详细可以
 参见其他几篇对NodeManager的分析;在这里的MapOutputTracker,也是为MapOutput提供一个访问入口;
 
@@ -685,7 +685,7 @@ MapOutputTrackerWorker为上面的slave, 它的实现很简单,核心功能就�
 
 上面基本分析完了MapOutputTracker,从逻辑上还是比较单独, 但是在整个Shuffle过程中很重要,它存储了Shuffle Map所有的输出;
 
-####Map按照什么规则进行output?--ShuffleManager的实现
+#### Map按照什么规则进行output?--ShuffleManager的实现
 上面我们说每个shuffleMapStage由多个map组成,每个map将该map中属于每个reduce的数据按照一定规则输出到"文件"中,并返回MapStatus给Driver;这里还有几个问题?
 
 +   每个mapTask按照什么规则进行write?
@@ -801,7 +801,7 @@ reduce的数据?
 
 这两个问题需要开一章来分析,这里我就不进行阐述了;这节的目前已经解释清楚了Shuffle的Map过程的实现原理;基本上Shuffle已经走通了一半了;
 
-###ShuffledRDD的实现过程
+### ShuffledRDD的实现过程
 上面讲到了,Shuffle过程是包括Map和Reduce两个过程;其中Shuffle Map以ShuffleMapStage的形式存在, Shuffle Reduce被抽象为一个RDD,该RDD的compute函数有点特殊而已,
 如下所示:
 
