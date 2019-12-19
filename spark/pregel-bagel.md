@@ -5,7 +5,7 @@ Pregel原理分析与Bagel实现
 就已经在spark项目中开源, 并且在最近的graphX项目中声明不再对bagel进行支持, 使用graphX的"高级API"进行取代, 种种迹象好像说明pregel这门技术已经走向"末端", 其实个人的观点倒不是这样的; 
 最近因为项目的需要去调研了一下图计算框架,当看到pregel的时候就有一种感叹原来"密密麻麻"的图计算可以被简化到这样. 虽然后面项目应该是用graphx来做,但是还是想对pregel做一个总结.
 
-###Pregel的原理分析
+### Pregel的原理分析
 说到MapReduce,我们想到的是Hadoop这种类型的计算平台, 可是我更加愿意把它理解为一个编程思想或一种算法. 虽然现在Spark中采用"高级API"来提供一种数据处理的接口,但是它的核心还是map, 还是
 reduce,以及shuffle. Pregel所处的位置和MapReduce也一样.
 
@@ -20,7 +20,7 @@ Pregel解决的是图计算问题, 随着数据量的增长, 不管单机算法�
 
 下面我们就来看Pregel是怎么解决这两个问题的. 
 
-####图的切割方式
+#### 图的切割方式
 虽然我们这里讨论是图计算,其实图的分布式表示也是图数据库中核心问题.因为只有切割了以后,一个大图才可以被分布式图数据库进行存储. 图数据因为顶点/边之间的强耦合性, 
 切割的方式方法比行列式数据要复杂很多, 切割的不合理会导致机器之间存储不均衡, 计算过程中也会因此带来大量的网络通信. 这两点也是衡量一个图切割的方法好坏的标准.
 
@@ -42,7 +42,7 @@ Pregel解决的是图计算问题, 随着数据量的增长, 不管单机算法�
 
 注意: 我们这里谈到Pregel是边切法, Bagel的实现也是边切法, 但是spark graphX的实现是点切法; 关于graphX后面再开文具体进行描述. 这里不要因为这里解释而误导对graphX的理解
 
-####Pregel运行模式:BSP计算模型
+#### Pregel运行模式:BSP计算模型
 Pregel是遵循BSP计算模型, BSP即整体同步并行计算模型(Bulk Synchronous Parallel Computing Model), 基于该模型的分布式计算项目也很多,其中包括Apache的顶级项目[Hama](https://hama.apache.org/),
 
 >   Many data analysis techniques such as machine learning and graph algorithms require iterative computations,
@@ -94,7 +94,7 @@ BSP计算模型由Master和Worker组成, 其中Master负责Worker之间的协调
 上面我们基本分析了Pregel的计算模型, 不过我也看到它的缺点: 消息传递的代价. 每一次消息传播其实就传统的shuffle过程, 在消息不是特别大, 可以做内存shuffle, 可以理解.但是消息特别大时候,
 可能需要上文件shuffle, 这个代码做过mapreduce/spark都清楚, 每次迭代都是shuffle,性能和带宽肯定是瓶颈.
 
-####Combiners
+#### Combiners
 上面我们谈到,BSP模型每次superstep会因为消息的传递,带来很大的网络开销, 但是其实大部分情况下, 和mapreduce中shuffle一致, 可以优先进行一下map端的combiner操作,来减少网络
 传输. 上面我们谈到Pregel是基于边切分, 每个节点一个worker,但是在物理层面, 一组worker可能会调度到一台物理机器上, 因为在将一个消息从这组worker传递到Master上进行聚合之前,可以
 在每个物理机器上做combiner操作, 从而减少大量的网络传输. 
@@ -104,7 +104,7 @@ BSP计算模型由Master和Worker组成, 其中Master负责Worker之间的协调
 
 关于combiner注意点: combiners的合并的对象是消息, 而不是每个顶点的数据, 下面我们会介绍pregel中另外一个概念:Aggregators.
 
-####Aggregators
+#### Aggregators
 pregel是站在顶点的角度来思考问题, 每次迭代计算都是顶点与相邻顶点之间的消息传递, 但是在某些应用中, 可能需要站在全局图的角度思考问题. 
 
 打一个简单的比如: 每次迭代之前需要计算所有节点的一个度量值的均值, 如果超过一定值, 所有顶点就结束迭代.这个时候,仅仅通过消息是不能进行判断,
@@ -126,7 +126,7 @@ pregel是站在顶点的角度来思考问题, 每次迭代计算都是顶点与
 另外需要强调一下,aggregator操作是和每次superstep相关联的, 即每个superstep就会做一次aggregator操作, 并且在这次computer执行之前, 换句话说, aggregator操作是对上一次
 superstep的顶点数据做聚合操作.
 
-####图的修改
+#### 图的修改
 我们上面谈到, pregel是站在顶点的角度来计算和更新顶点的值,但是在实际的应用中,有一类算法,可能在运行过程中对图的结构进行修改,比如新增节点/边,删除节点/边.
 在实现的角度上来, 这个逻辑需要"pregel内核"的执行,computer接口中只能将需求以特定的方式传递给master, 由master进行处理. 目前Bagel是没有实现这种部分逻辑,毕竟大部分应用
 是不会在计算过程中做图的修改操作.
@@ -147,7 +147,7 @@ superstep的顶点数据做聚合操作.
 OK!上面基本上解析了Pregel的原理, 还有一些概念没有谈到, 比如错误容忍, 每次顶点在superstep之前 先做本地的checkout, 在失败的时候可以恢复过来. 这里就不做详细的解析.
 下面我们来看具体的Bagel的实现.
 
-###Bagel的实现
+### Bagel的实现
 Bagel是Pregel一个开源实现, 目前代码开源在Spark源码中, 不过Spark官方已经放弃对这块的支持, 优先使用GraphX来进行图计算. Bagel代码量很短, 才300行, 这里简单对代码进行过一遍, 
 核心是围绕上面谈到的概念进行解析.
 
