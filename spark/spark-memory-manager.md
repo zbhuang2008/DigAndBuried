@@ -2,7 +2,7 @@
 
 在Spark日常工作中(特别是处理大数据),内存算是最常见问题.看着日志里打着各种FullGC甚至OutOfMemory日志,但是却不能理解是在哪一块出了内存问题.其实也这是正常的,Spark内存管理某种程度上还是相当复杂了,涉及RDD-Cache,Shuffle,Off-Heap等逻辑,它贯穿在整个任务执行的每个环节中.
 
-Spark官方甚至为了更大程度的提高内存利用率,从1.4版本开始启动了Tungsten项目([SPARK-7081]: Initial performance improvements in project Tungsten, https://issues.apache.org/jira/browse/SPARK-7081),脱离JVM的对象模型和GC管理器的限制,以二进制的方式与内存进行交互,自行进行内存管理.
+Spark官方甚至为了更大程度的提高内存利用率,从1.4版本开始启动了Tungsten项目[SPARK-7081](https://issues.apache.org/jira/browse/SPARK-7081): Initial performance improvements in project Tungsten,脱离JVM的对象模型和GC管理器的限制,以二进制的方式与内存进行交互,自行进行内存管理.
 
 对于RDD-Cache的功能,Spark也原生对Tachyon提供了支持.当内存成为瓶颈时,引入Tachyon也算是一个完美的解决方案,让Spark更加专心的处理计算.
 
